@@ -51,10 +51,10 @@ def TerminalTestVirus(action):
         client.publish("RPi/Controller", "ID=1; Y=-1")
 
 def TerminalTestKar(action):
-    if action == "RT":
-        client.publish("RPi/Controller", "ID=2; X=1")
-    if action == "LT":
-        client.publish("RPi/Controller", "ID=2; X=-1")
+    if action == "UP":
+        client.publish("RPi/Controller", "ID=2; Y=1")
+    if action == "DN":
+        client.publish("RPi/Controller", "ID=2; Y=-1")
 
 def AutoMoveRollen():
     client.publish("RPi/Controller", "ID=0; X=1")
