@@ -14,8 +14,10 @@ wcRolID = 2
 
 virusPosX = 720
 virusPosY = 260
-wcRolPosX = 0
+
+wcRolPosX = 40
 wcRolPosY = 260
+
 cartPosX = 336
 cartPosY = 0
 
@@ -89,8 +91,8 @@ def TerminalTestKar(action):
 
 def AutoMoveRollen():
     global virusID, virusPosY, virusPosX, wcRolID, wcRolPosY, wcRolPosX
-    wcRolPosX = wcRolPosX + 20
-    virusPosX = virusPosX - 20
+    wcRolPosX = wcRolPosX + 10
+    virusPosX = virusPosX - 10
     client.publish("RPi/GUI", "ID=" + str(virusID).zfill(2) + "; X=" + str(virusPosX).zfill(4) +"; Y=" + str(virusPosY).zfill(4) +";")
     client.publish("RPi/GUI", "ID=" + str(wcRolID).zfill(2) + "; X=" + str(wcRolPosX).zfill(4) +"; Y=" + str(wcRolPosY).zfill(4) +";")
 
@@ -167,11 +169,10 @@ def Collision():
         cartPosY < (virusPosY + 80) and 
         (cartPosY + 80) > virusPosY):
         Respawn(virusID)
-        #winkelkar verliest lading
         score = 0
         client.publish("RPi/GUI", "Score=" + str(score).zfill(2))
 
-client = mqtt.Client(client_id="clientId-x3sRNOeZi9", clean_session=True, userdata=None, protocol=mqtt.MQTTv31)
+client = mqtt.Client(client_id="clientId-DLSoRvQWM3", clean_session=True, userdata=None, protocol=mqtt.MQTTv31)
 client.on_connect = on_connect
 client.on_message = on_message
 client.on_subscribe = on_subscribe
@@ -182,4 +183,4 @@ client.loop_start()
 while True:
     AutoMoveRollen()
     Collision()
-    t.sleep(2)
+    t.sleep(0.5)
