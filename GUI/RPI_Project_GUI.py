@@ -28,6 +28,7 @@ def MQTT():
         listPlayersID.append(payload[Slice_ID])
         listPlayersPos.append([payload[Slice_xpos], payload[Slice_ypos]])
         #ID=00; X=0100; Y=0100;
+        #Score=00
         #0 = Cart; 1 = Virus; 2 = WCrol;
 
     def on_subscribe(client, userdata, mid, granted_qos):
