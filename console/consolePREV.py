@@ -23,23 +23,23 @@ def on_message(client, userdata, msg):
   if((str(msg.payload)[slice(8,9)]) == "1" or (str(msg.payload)[slice(8,9)]) == "2" or (str(msg.payload)[slice(8,9)]) == "3"):
    ID = (str(msg.payload)[slice(8,9)])
 
-#def leftButtonPressed(channel):
-# global ID
-# if (ID == 0):
-#   ret = client.publish("RPi/Console", "ID=0; Action=UP")
-# elif (ID == 1):
-#  ret = client.publish("RPi/Console", "ID=1; Action=UP")
-# elif (ID == 2):
-#  ret = client.publish("RPi/Console", "ID=2; Action=LT")
-#
-#def rightButtonPressed(channel):
-# global ID
-# if (ID == 0):
-#  ret = client.publish("RPi/Console", "ID=0; Action=DN")
-# elif (ID == 1):
-#  ret = client.publish("RPi/Console", "ID=1; Action=DN")
-# elif (ID == 2):
-#  ret = client.publish("RPi/Console", "ID=2; Action=RT")
+def leftButtonPressed(channel):
+ global ID
+ if (ID == 0):
+  ret = client.publish("RPi/Console", "ID=0; Action=UP")
+ elif (ID == 1):
+  ret = client.publish("RPi/Console", "ID=1; Action=UP")
+ elif (ID == 2):
+  ret = client.publish("RPi/Console", "ID=2; Action=LT")
+
+def rightButtonPressed(channel):
+ global ID
+ if (ID == 0):
+  ret = client.publish("RPi/Console", "ID=0; Action=DN")
+ elif (ID == 1):
+  ret = client.publish("RPi/Console", "ID=1; Action=DN")
+ elif (ID == 2):
+  ret = client.publish("RPi/Console", "ID=2; Action=RT")
 
 def GetID():
  client.publish("RPi/Console", "GetID")
@@ -66,13 +66,13 @@ counter = 0
 inputKey = "X"
 
 def icb(channel):
-  global ID
+  global counter
   if channel == buttons[0]:
-    ret = client.publish("RPi/Console", "ID="+str(ID)+"; Action=UP")
-    print("UP")
+    print("up/down")
+    counter += 1 if counter < 9 else -9
+    GPIO.output(segments, BCD[counter])
   if channel == buttons[1]:
-    ret = client.publish("RPi/Console", "ID="+str(ID)+"; Action=DN")
-    print("DOWN")
+    print("left/right")
 
 for x in buttons: # interrupts activeren
   GPIO.add_event_detect(x, GPIO.FALLING, callback=icb, bouncetime=100)
@@ -90,12 +90,6 @@ client.on_message = on_message
 #  pass
 
 while inputKey != "":
-  while ID == None: # wanneer de ID None is ben je dood en moet je een nieuwe id krijgen
-    print("Request an new ID from the broker!")
-    GetID()
-    ID = 8 # deze ID moet teruggegeven worden vanuit de gamecontroller
-  if ID != None:
-    GPIO.output(segments, BCD[ID])
   inputKey = input()
 
 for x in buttons:
