@@ -21,7 +21,7 @@ def MQTT():
         payload = str(msg.payload)
         Slice_Type = slice(2,4)
         Slice_ID = slice(5,7)
-        Slice_Score = slice(8,9)
+        Slice_Score = slice(8,10)
         Slice_xpos = slice(12,15) 
         Slice_ypos = slice(20,23)
         global listPlayersPos, listPlayersID, score
@@ -31,6 +31,7 @@ def MQTT():
         print(str(payload[Slice_ypos]))
         if str(payload[Slice_Type]) == "Sc":
             score = payload[Slice_Score]
+            print("Score: " + str(score))
         else:
             listPlayersID.append(payload[Slice_ID])
             listPlayersPos.append([payload[Slice_xpos], payload[Slice_ypos]])
@@ -54,7 +55,8 @@ def GUI():
     imgVirus = tk.PhotoImage(file="virus.png")
     imgCart = tk.PhotoImage(file="Cart.png")
     venster.title('RPi Groep 4')
-    canvas = tk.Canvas(venster, width=800, height=600)
+    canvas = tk.Canvas(venster,bg="#b394e3", width=800, height=600)
+
     canvas.pack()
 
     def updateScreen():
@@ -77,7 +79,7 @@ def GUI():
         canvas.create_text(760,20, text="Score: " + str(score))
         listPlayersPos = []
         listPlayersID = []
-        venster.after(500, updateScreen)
+        venster.after(250, updateScreen)
     
     updateScreen()
     venster.mainloop()

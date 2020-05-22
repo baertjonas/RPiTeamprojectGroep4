@@ -5,20 +5,21 @@ import time as t
 import random as r
 import paho.mqtt.client as mqtt
 
-id = 0
+idToGive = 0
+
 windowH = 600
 windowW = 800
 cartID = 0
 virusID = 1
 wcRolID = 2
 
-virusPosX = 720
+virusPosX = 770
 virusPosY = 260
 
-wcRolPosX = 40
+wcRolPosX = 0
 wcRolPosY = 260
 
-cartPosX = 336
+cartPosX = 416
 cartPosY = 0
 
 score = 0
@@ -39,24 +40,27 @@ def on_subscribe(client, userdata, mid, granted_qos):
 #0 = cart; 1 = Virus; 2 = WCrol;
 
 def on_message(client, userdata, msg):
+    print(str(msg.payload))
     if str(msg.payload)[slice(2, 7)] == "GetID":
         Rolverdeling()
     
     if str(msg.payload)[slice(2, 4)] == "ID":
-        rolID = str(msg.payload)[slice(5, 6)]
-        action = str(msg.payload)[slice(15, 17)]
-        if rolID == "2":
-            TerminalTestWcRol(action)
-        if rolID == "1":
-            TerminalTestVirus(action)
-        if rolID == "0":
+        rolID = str(msg.payload)[slice(5, 7)]
+        action = str(msg.payload)[slice(16, 18)]
+        if rolID == "00":
             TerminalTestKar(action)
+        elif int(rolID) % 2 == 0:
+            TerminalTestWcRol(action)
+        else:
+            TerminalTestVirus(action)
+        
 
 
 def Rolverdeling():
-    if id < 3:
-        client.publish("RPi/Console", "GetID=" + id)
-        id = id + 1
+    global idToGive
+    if idToGive < 3:
+        client.publish("RPi/Console", "GetID=" + str(idToGive).zfill(2))
+        idToGive = idToGive + 1
 
 def TerminalTestWcRol(action):
     global wcRolID, wcRolPosY, wcRolPosX
@@ -91,28 +95,35 @@ def TerminalTestKar(action):
 
 def AutoMoveRollen():
     global virusID, virusPosY, virusPosX, wcRolID, wcRolPosY, wcRolPosX
-    wcRolPosX = wcRolPosX + 10
-    virusPosX = virusPosX - 10
+    wcRolPosX = wcRolPosX + 5
+    virusPosX = virusPosX - 5
     client.publish("RPi/GUI", "ID=" + str(virusID).zfill(2) + "; X=" + str(virusPosX).zfill(4) +"; Y=" + str(virusPosY).zfill(4) +";")
     client.publish("RPi/GUI", "ID=" + str(wcRolID).zfill(2) + "; X=" + str(wcRolPosX).zfill(4) +"; Y=" + str(wcRolPosY).zfill(4) +";")
+    client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
 def Respawn(id):
     global wcRolID, wcRolPosX, wcRolPosY, virusID, virusPosX, virusPosY
+    if (id == 98):
+        id = 2
+        wcRolID = id
+    if (id == 99):
+        id = 1
+        virusID = id
+
     if (id % 2 == 0):
         #dan wc rol
         wcRolPosX = 0
-        wcRolPosY = 260
+        wcRolPosY = r.randint(0,520)
         wcRolID = wcRolID + 2
         client.publish("RPi/GUI", "ID=" + str(wcRolID).zfill(2) + "; X=" + str(wcRolPosX).zfill(4) +"; Y=" + str(wcRolPosY).zfill(4) +";")
         client.publish("RPi/Console", "Rspwn=" + (str(wcRolID - 2).zfill(2)) + "; ID=" + str(wcRolID).zfill(2))
     else:
         #dan virus
         virusPosX = 720
-        virusPosY = 260
+        virusPosY = r.randint(0,520)
         virusID = virusID + 2
         client.publish("RPi/GUI", "ID=" + str(virusID).zfill(2) + "; X=" + str(virusPosX).zfill(4) +"; Y=" + str(virusPosY).zfill(4) +";")
         client.publish("RPi/Console", "Rspwn=" + (str(virusID - 2).zfill(2)) + "; ID=" + str(virusID).zfill(2))
-
 
 def Collision():
     global virusID, virusPosY, virusPosX, wcRolID, wcRolPosY, wcRolPosX, cartID, cartPosY, cartPosX, score
@@ -143,11 +154,11 @@ def Collision():
 
     #cart Collision with map border
     if (cartPosY < 0):
-        wcRolPosY = 0
+        cartPosY = 0
         client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
-    if (cartPosY < 520):
-        wcRolPosY = 520
+    if (cartPosY > 520):
+        cartPosY = 520
         client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
     #Virus and wcrol Collision
@@ -173,14 +184,15 @@ def Collision():
         client.publish("RPi/GUI", "Score=" + str(score).zfill(2))
 
 client = mqtt.Client(client_id="clientId-DLSoRvQWM3", clean_session=True, userdata=None, protocol=mqtt.MQTTv31)
+client.connect("broker.mab3lly.rocks", 1883)
 client.on_connect = on_connect
 client.on_message = on_message
-client.on_subscribe = on_subscribe
-client.connect("broker.mab3lly.rocks", 1883)
+#client.on_subscribe = on_subscribe
+
 
 client.loop_start()
 
 while True:
     AutoMoveRollen()
     Collision()
-    t.sleep(0.5)
+    t.sleep(0.250)
