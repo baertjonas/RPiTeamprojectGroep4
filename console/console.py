@@ -3,46 +3,47 @@
 import time
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+import random
+import string
 
 leds = [16,20,21] # GPIO 16=rood=wc-rol // 20=geel=winkelkar // 21=groen=virus
 segments = [4,17,27,22,5,6,13] # GPIO A=14 // B=17 // ...
 buttons = [23,24]
-ID = None
+winkelkarID = [1]
+wcrolID = [2,3,4,5]
+virusID = [6,7,8,9]
+ID = 0
+
+def randomString(stringLength):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(stringLength))
+
+clientID = randomString(8)
 
 def on_connect(client, userdata, flags, rc):
- print("Connected with result code " + str(rc))
- client.subscribe("RPi/Console")
+  print("Connected with result code " + str(rc))
+  client.subscribe("RPi/"+clientID)
 
 def on_publish(client, userdata, mid):
- print("published")
+  print("published")
 
 def on_message(client, userdata, msg):
- global ID
- if((str(msg.payload)[slice(2,7)]) == "GetID"):
-  print(str(msg.payload)[slice(8,9)])
-  if((str(msg.payload)[slice(8,9)]) == "1" or (str(msg.payload)[slice(8,9)]) == "2" or (str(msg.payload)[slice(8,9)]) == "3"):
-   ID = (str(msg.payload)[slice(8,9)])
-
-#def leftButtonPressed(channel):
-# global ID
-# if (ID == 0):
-#   ret = client.publish("RPi/Console", "ID=0; Action=UP")
-# elif (ID == 1):
-#  ret = client.publish("RPi/Console", "ID=1; Action=UP")
-# elif (ID == 2):
-#  ret = client.publish("RPi/Console", "ID=2; Action=LT")
-#
-#def rightButtonPressed(channel):
-# global ID
-# if (ID == 0):
-#  ret = client.publish("RPi/Console", "ID=0; Action=DN")
-# elif (ID == 1):
-#  ret = client.publish("RPi/Console", "ID=1; Action=DN")
-# elif (ID == 2):
-#  ret = client.publish("RPi/Console", "ID=2; Action=RT")
-
-def GetID():
- client.publish("RPi/Console", "GetID")
+  payload = str(msg.payload)
+  global ID
+  if (payload[slice(2,5)] == "id="):
+    ID = int(payload[slice(5,6)])
+    print("Je hebt een nieuwe ID: "+str(ID))
+    GPIO.output(segments, BCD[ID])
+    GPIO.output(leds, 0) # alle leds uitschakelen
+    if (ID in winkelkarID):
+      print("Je bent nu een winkelkar.")
+      GPIO.output(leds[1], 1) # gele led
+    elif (ID in wcrolID):
+      print ("Je bent nu een wc-rol.")
+      GPIO.output(leds[0], 1) # rode led
+    elif (ID in virusID):
+      print("Je bent nu een virus.")
+      GPIO.output(leds[2], 1) # groene led
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(leds, GPIO.OUT) # leds activeren
@@ -62,41 +63,31 @@ BCD = {0:(1,1,1,1,1,1,0),
     8:(1,1,1,1,1,1,1),
     9:(1,1,1,1,0,1,1)}
 
-counter = 0
-inputKey = "X"
-
 def icb(channel):
   global ID
   if channel == buttons[0]:
-    ret = client.publish("RPi/Console", "ID="+str(ID)+"; Action=UP")
+    ret = client.publish("RPi/Console", "id="+str(ID)+";action=up")
     print("UP")
   if channel == buttons[1]:
-    ret = client.publish("RPi/Console", "ID="+str(ID)+"; Action=DN")
+    ret = client.publish("RPi/Console", "id="+str(ID)+";action=dn")
     print("DOWN")
 
 for x in buttons: # interrupts activeren
   GPIO.add_event_detect(x, GPIO.FALLING, callback=icb, bouncetime=100)
 
-client = mqtt.Client(client_id="clientId-MnYsFs07V8", clean_session=True)
+client = mqtt.Client(client_id=clientID, clean_session=True)
 client.connect("broker.mab3lly.rocks",1883)
 client.on_connect = on_connect
 client.on_publish = on_publish
 client.on_message = on_message
+client.loop_start()
 
-#try:
-#  while True:
-#    pass
-#except KeyboardInterrupt:
-#  pass
-
-while inputKey != "":
-  while ID == None: # wanneer de ID None is ben je dood en moet je een nieuwe id krijgen
-    print("Request an new ID from the broker!")
-    GetID()
-    ID = 8 # deze ID moet teruggegeven worden vanuit de gamecontroller
-  if ID != None:
-    GPIO.output(segments, BCD[ID])
-  inputKey = input()
+# PROGRAM LOGIC
+print("***COVID-19***")
+print("Je bent client " + clientID)
+client.publish("RPi/Auth", "client="+clientID+";hello") # publish a hello message to the controller to receive an ID
+input() # when you press return, exit the program
+client.publish("RPi/Auth", "client="+clientID+";goodbye") # publish a goodbye message to the controller to release the ID
 
 for x in buttons:
   GPIO.remove_event_detect(x)
