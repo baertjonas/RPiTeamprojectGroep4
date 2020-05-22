@@ -7,6 +7,7 @@ import time
 
 listPlayersPos = []
 listPlayersID = []
+score = "00"
 deleteImages = 0
 
 def MQTT():
@@ -18,16 +19,23 @@ def MQTT():
     def on_message(client, userdata, msg):
         print(str(msg.payload))
         payload = str(msg.payload)
-        Slice_ID = slice(6,7)
+        Slice_Type = slice(2,4)
+        Slice_ID = slice(5,7)
+        Slice_Score = slice(8,9)
         Slice_xpos = slice(12,15) 
         Slice_ypos = slice(20,23)
-        global listPlayersPos, listPlayerID
+        global listPlayersPos, listPlayersID, score
+        print(str(payload[Slice_Type]))
         print(str(payload[Slice_ID]))
         print(str(payload[Slice_xpos]))
         print(str(payload[Slice_ypos]))
-        listPlayersID.append(payload[Slice_ID])
-        listPlayersPos.append([payload[Slice_xpos], payload[Slice_ypos]])
+        if str(payload[Slice_Type]) == "Sc":
+            score = payload[Slice_Score]
+        else:
+            listPlayersID.append(payload[Slice_ID])
+            listPlayersPos.append([payload[Slice_xpos], payload[Slice_ypos]])
         #ID=00; X=0100; Y=0100;
+        #Score=00
         #0 = Cart; 1 = Virus; 2 = WCrol;
 
     def on_subscribe(client, userdata, mid, granted_qos):
@@ -38,7 +46,7 @@ def MQTT():
     client.on_message = on_message
     client.on_subscribe = on_subscribe
     client.connect("broker.mab3lly.rocks", 1883)
-    client.loop_forever()
+    client.loop_start()
 
 def GUI():
     venster = tk.Tk()
@@ -50,21 +58,26 @@ def GUI():
     canvas.pack()
 
     def updateScreen():
-        global listPlayersID, listPlayersPos, deleteImages
+        #Show score on screen
+        global listPlayersID, listPlayersPos, deleteImages, score
         if deleteImages == 1:
             canvas.delete("all")
         deleteImages = 1
         aantalIteraties = len(listPlayersID)
         for x in range(0, aantalIteraties):
-            if listPlayersID[x] == 0:
+            if str(listPlayersID[x]) == "00":
                 image = canvas.create_image(listPlayersPos[x][0], listPlayersPos[x][1], anchor=tk.N, image=imgCart)
+                canvas.create_text(listPlayersPos[x][0], listPlayersPos[x][1], text=str(listPlayersID[x]))
             elif int(listPlayersID[x]) % 2 == 0:
                 image = canvas.create_image(listPlayersPos[x][0], listPlayersPos[x][1], anchor=tk.N, image=imgWCrol)
+                canvas.create_text(listPlayersPos[x][0], listPlayersPos[x][1], text=str(listPlayersID[x]))
             else:
                 image = canvas.create_image(listPlayersPos[x][0], listPlayersPos[x][1], anchor=tk.N, image=imgVirus)
+                canvas.create_text(listPlayersPos[x][0], listPlayersPos[x][1], text=str(listPlayersID[x]))
+        canvas.create_text(760,20, text="Score: " + str(score))
         listPlayersPos = []
         listPlayersID = []
-        venster.after(1000, updateScreen)
+        venster.after(500, updateScreen)
     
     updateScreen()
     venster.mainloop()
