@@ -16,13 +16,17 @@ wcRolID = 2
 virusPosX = 770
 virusPosY = 260
 
-wcRolPosX = 0
+wcRolPosX = 40
 wcRolPosY = 260
 
 cartPosX = 416
 cartPosY = 0
 
 score = 0
+
+clientWcRol = None
+clientCart = None
+clientVirus = None
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
@@ -40,10 +44,23 @@ def on_subscribe(client, userdata, mid, granted_qos):
 #0 = cart; 1 = Virus; 2 = WCrol;
 
 def on_message(client, userdata, msg):
+    global clientWcRol, clientVirus, clientCart, idToGive
     print(str(msg.payload))
     if str(msg.payload)[slice(2, 7)] == "GetID":
-        Rolverdeling()
-    
+        randonId = str(msg.payload)[slice(7,15)]
+        if (clientCart == None and idToGive == 0):
+            #geef cart rol
+            clientCart = randonId
+            Rolverdeling(clientCart)
+        elif (clientVirus == None and idToGive == 1):
+            #geef virus rol
+            clientVirus = randonId
+            Rolverdeling(clientVirus)
+        elif (clientWcRol == None and idToGive == 2):
+            #geef wcrol rol
+            clientWcRol = randonId
+            Rolverdeling(clientWcRol)
+
     if str(msg.payload)[slice(2, 4)] == "ID":
         rolID = str(msg.payload)[slice(5, 7)]
         action = str(msg.payload)[slice(16, 18)]
@@ -56,10 +73,10 @@ def on_message(client, userdata, msg):
         
 
 
-def Rolverdeling():
-    global idToGive
+def Rolverdeling(clientid):
+    global idToGive, clientWcRol, clientCart, clientVirus
     if idToGive < 3:
-        client.publish("RPi/Console", "GetID=" + str(idToGive).zfill(2))
+        client.publish("RPi/" + clientid, "GetID=" + str(idToGive).zfill(2))
         idToGive = idToGive + 1
 
 def TerminalTestWcRol(action):
@@ -93,6 +110,12 @@ def TerminalTestKar(action):
         cartPosY = cartPosY + 20
         client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
+def InitialSpawn():
+    global virusID, virusPosY, virusPosX, wcRolID, wcRolPosY, wcRolPosX
+    client.publish("RPi/GUI", "ID=" + str(virusID).zfill(2) + "; X=" + str(virusPosX).zfill(4) +"; Y=" + str(virusPosY).zfill(4) +";")
+    client.publish("RPi/GUI", "ID=" + str(wcRolID).zfill(2) + "; X=" + str(wcRolPosX).zfill(4) +"; Y=" + str(wcRolPosY).zfill(4) +";")
+    client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
+
 def AutoMoveRollen():
     global virusID, virusPosY, virusPosX, wcRolID, wcRolPosY, wcRolPosX
     wcRolPosX = wcRolPosX + 5
@@ -102,7 +125,7 @@ def AutoMoveRollen():
     client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
 def Respawn(id):
-    global wcRolID, wcRolPosX, wcRolPosY, virusID, virusPosX, virusPosY
+    global wcRolID, wcRolPosX, wcRolPosY, virusID, virusPosX, virusPosY, clientWcRol, clientVirus
     if (id == 98):
         id = 2
         wcRolID = id
@@ -116,14 +139,14 @@ def Respawn(id):
         wcRolPosY = r.randint(0,520)
         wcRolID = wcRolID + 2
         client.publish("RPi/GUI", "ID=" + str(wcRolID).zfill(2) + "; X=" + str(wcRolPosX).zfill(4) +"; Y=" + str(wcRolPosY).zfill(4) +";")
-        client.publish("RPi/Console", "Rspwn=" + (str(wcRolID - 2).zfill(2)) + "; ID=" + str(wcRolID).zfill(2))
+        client.publish("RPi/" + clientWcRol, "Rspwn=" + (str(wcRolID - 2).zfill(2)) + "; ID=" + str(wcRolID).zfill(2))
     else:
         #dan virus
         virusPosX = 720
         virusPosY = r.randint(0,520)
         virusID = virusID + 2
         client.publish("RPi/GUI", "ID=" + str(virusID).zfill(2) + "; X=" + str(virusPosX).zfill(4) +"; Y=" + str(virusPosY).zfill(4) +";")
-        client.publish("RPi/Console", "Rspwn=" + (str(virusID - 2).zfill(2)) + "; ID=" + str(virusID).zfill(2))
+        client.publish("RPi/" + clientVirus, "Rspwn=" + (str(virusID - 2).zfill(2)) + "; ID=" + str(virusID).zfill(2))
 
 def Collision():
     global virusID, virusPosY, virusPosX, wcRolID, wcRolPosY, wcRolPosX, cartID, cartPosY, cartPosX, score
@@ -193,6 +216,9 @@ client.on_message = on_message
 client.loop_start()
 
 while True:
-    AutoMoveRollen()
+    if (clientWcRol != None and clientCart != None and clientVirus != none):
+        AutoMoveRollen()
+    else:
+        InitialSpawn()
     Collision()
     t.sleep(0.250)
