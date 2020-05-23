@@ -3,15 +3,23 @@
 import time
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+import random
+import string
 
 leds = [16,20,21] # GPIO 16=rood=wc-rol // 20=geel=winkelkar // 21=groen=virus
 segments = [4,17,27,22,5,6,13] # GPIO A=14 // B=17 // ...
 buttons = [23,24]
 ID = None
 
+def randomString(stringLength):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(stringLength))
+
+clientID = randomString(8)
+
 def on_connect(client, userdata, flags, rc):
  print("Connected with result code " + str(rc))
- client.subscribe("RPi/Console")
+ client.subscribe("RPi/" + clientID)
 
 def on_publish(client, userdata, mid):
  print("published")
@@ -37,7 +45,7 @@ def on_message(client, userdata, msg):
  GPIO.output(segments, BCD[int(ID)])
  
 def GetID():
- client.publish("RPi/Controller", "GetID")
+ client.publish("RPi/Controller", "GetID; Client=" + clientID)
  
 def Respawn(currentID, newID):
  global ID
@@ -74,7 +82,7 @@ BCD = {0:(1,1,1,1,1,1,0),
     8:(1,1,1,1,1,1,1),
     9:(1,1,1,1,0,1,1)}
  
-client = mqtt.Client(client_id="clientId-UwZWKw42xN", clean_session=True)
+client = mqtt.Client(client_id=clientID, clean_session=True)
 client.connect("broker.mab3lly.rocks",1883)
 client.on_connect = on_connect
 client.on_publish = on_publish
@@ -84,6 +92,7 @@ client.loop_start()
 
 time.sleep(2)
 while ID is None:
+ print(clientID)
  GetID()
  time.sleep(5)
 
