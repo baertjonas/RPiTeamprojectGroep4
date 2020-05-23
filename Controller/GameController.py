@@ -47,7 +47,8 @@ def on_message(client, userdata, msg):
     global clientWcRol, clientVirus, clientCart, idToGive
     print(str(msg.payload))
     if str(msg.payload)[slice(2, 7)] == "GetID":
-        randonId = str(msg.payload)[slice(7,15)]
+        randonId = str(msg.payload)[slice(16,24)]
+        print(randonId)
         if (clientCart == None and idToGive == 0):
             #geef cart rol
             clientCart = randonId
@@ -69,9 +70,7 @@ def on_message(client, userdata, msg):
         elif int(rolID) % 2 == 0:
             TerminalTestWcRol(action)
         else:
-            TerminalTestVirus(action)
-        
-
+            TerminalTestVirus(action)  
 
 def Rolverdeling(clientid):
     global idToGive, clientWcRol, clientCart, clientVirus
@@ -216,7 +215,7 @@ client.on_message = on_message
 client.loop_start()
 
 while True:
-    if (clientWcRol != None and clientCart != None and clientVirus != none):
+    if (clientWcRol != None and clientCart != None and clientVirus != None):
         AutoMoveRollen()
     else:
         InitialSpawn()
