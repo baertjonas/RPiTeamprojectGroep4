@@ -52,8 +52,7 @@ def GetID():
 
 def Respawn(currentID, newID):
  global ID
- if(currentID == ID):
-  ID=newID
+ ID=newID
 
 def icb(channel):
   global ID
