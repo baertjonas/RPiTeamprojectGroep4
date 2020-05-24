@@ -125,25 +125,24 @@ def AutoMoveRollen():
 
 def Respawn(id):
     global wcRolID, wcRolPosX, wcRolPosY, virusID, virusPosX, virusPosY, clientWcRol, clientVirus
-    if (id == 98):
-        id = 2
-        wcRolID = id
-    if (id == 99):
-        id = 1
-        virusID = id
-
     if (id % 2 == 0):
         #dan wc rol
+        wcRolID = id
         wcRolPosX = 0
         wcRolPosY = r.randint(0,520)
         wcRolID = wcRolID + 2
+        if (wcRolID == 10):
+            wcRolID = 2
         client.publish("RPi/GUI", "ID=" + str(wcRolID).zfill(2) + "; X=" + str(wcRolPosX).zfill(4) +"; Y=" + str(wcRolPosY).zfill(4) +";")
         client.publish("RPi/" + clientWcRol, "Rspwn=" + (str(wcRolID - 2).zfill(2)) + "; ID=" + str(wcRolID).zfill(2))
     else:
         #dan virus
+        virusID = id
         virusPosX = 720
         virusPosY = r.randint(0,520)
         virusID = virusID + 2
+        if (virusID == 11):
+            virusID = 1
         client.publish("RPi/GUI", "ID=" + str(virusID).zfill(2) + "; X=" + str(virusPosX).zfill(4) +"; Y=" + str(virusPosY).zfill(4) +";")
         client.publish("RPi/" + clientVirus, "Rspwn=" + (str(virusID - 2).zfill(2)) + "; ID=" + str(virusID).zfill(2))
 
@@ -176,23 +175,25 @@ def Collision():
 
     #cart Collision with map border
     if (cartPosY < 0):
-        cartPosY = 0
+        cartPosY = 520
         client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
     if (cartPosY > 520):
-        cartPosY = 520
+        cartPosY = 0
         client.publish("RPi/GUI", "ID=" + str(cartID).zfill(2) + "; X=" + str(cartPosX).zfill(4) +"; Y=" + str(cartPosY).zfill(4) +";")
 
     #Virus and wcrol Collision
     if ((wcRolPosX + 80) > virusPosX and
-        wcRolPosY < (virusPosY + 80) and 
-        (wcRolPosY + 80) > virusPosY):
+        wcRolPosY < (virusPosY + 80) and
+        (wcRolPosY + 80) > virusPosY and 
+        wcRolPosX < (virusPosX + 80)):
         Respawn(wcRolID)
 
     #wcrol and cart collision 
     if ((wcRolPosX + 80) > cartPosX and
         wcRolPosY < (cartPosY + 80) and 
-        (wcRolPosY + 80) > cartPosY):
+        (wcRolPosY + 80) > cartPosY and 
+        wcRolPosX < (cartPosX + 80)):
         Respawn(wcRolID)
         score = score + 1
         client.publish("RPi/GUI", "Score=" + str(score).zfill(2))
@@ -200,7 +201,8 @@ def Collision():
     #virus and cart collision
     if ((cartPosX + 88) > virusPosX and
         cartPosY < (virusPosY + 80) and 
-        (cartPosY + 80) > virusPosY):
+        (cartPosY + 80) > virusPosY and
+        cartPosX < (virusPosX + 80)):
         Respawn(virusID)
         score = 0
         client.publish("RPi/GUI", "Score=" + str(score).zfill(2))
